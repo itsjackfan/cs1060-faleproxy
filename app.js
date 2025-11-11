@@ -16,6 +16,39 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Function to replace Yale with Fale while preserving case
+function replaceYalePreservingCase(text) {
+  return text.replace(/YALE/g, 'FALE')
+             .replace(/Yale/g, 'Fale')
+             .replace(/yale/g, 'fale');
+}
+
+// Function to process HTML and replace Yale with Fale in text content
+function processHtml(html) {
+  const $ = cheerio.load(html);
+  
+  // Process text nodes in the body
+  $('body *').contents().filter(function() {
+    return this.nodeType === 3; // Text nodes only
+  }).each(function() {
+    // Replace text content but not in URLs or attributes
+    const text = $(this).text();
+    const newText = replaceYalePreservingCase(text);
+    if (text !== newText) {
+      $(this).replaceWith(newText);
+    }
+  });
+  
+  // Process title separately
+  const title = replaceYalePreservingCase($('title').text());
+  $('title').text(title);
+  
+  return {
+    html: $.html(),
+    title: title
+  };
+}
+
 // API endpoint to fetch and modify content
 app.post('/fetch', async (req, res) => {
   try {
@@ -29,43 +62,12 @@ app.post('/fetch', async (req, res) => {
     const response = await axios.get(url);
     const html = response.data;
 
-    // Use cheerio to parse HTML and selectively replace text content, not URLs
-    const $ = cheerio.load(html);
-    
-    // Function to replace text but skip URLs and attributes
-    function replaceYaleWithFale(i, el) {
-      if ($(el).children().length === 0 || $(el).text().trim() !== '') {
-        // Get the HTML content of the element
-        let content = $(el).html();
-        
-        // Only process if it's a text node
-        if (content && $(el).children().length === 0) {
-          // Replace Yale with Fale in text content only
-          content = content.replace(/Yale/g, 'Fale').replace(/yale/g, 'fale');
-          $(el).html(content);
-        }
-      }
-    }
-    
-    // Process text nodes in the body
-    $('body *').contents().filter(function() {
-      return this.nodeType === 3; // Text nodes only
-    }).each(function() {
-      // Replace text content but not in URLs or attributes
-      const text = $(this).text();
-      const newText = text.replace(/Yale/g, 'Fale').replace(/yale/g, 'fale');
-      if (text !== newText) {
-        $(this).replaceWith(newText);
-      }
-    });
-    
-    // Process title separately
-    const title = $('title').text().replace(/Yale/g, 'Fale').replace(/yale/g, 'fale');
-    $('title').text(title);
+    // Process the HTML to replace Yale with Fale
+    const { html: processedHtml, title } = processHtml(html);
     
     return res.json({ 
       success: true, 
-      content: $.html(),
+      content: processedHtml,
       title: title,
       originalUrl: url
     });
@@ -77,7 +79,14 @@ app.post('/fetch', async (req, res) => {
   }
 });
 
+// Export app and functions for testing
+module.exports = app;
+module.exports.replaceYalePreservingCase = replaceYalePreservingCase;
+module.exports.processHtml = processHtml;
+
 // Start the server
-app.listen(PORT, () => {
-  console.log(`Faleproxy server running at http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Faleproxy server running at http://localhost:${PORT}`);
+  });
+}
