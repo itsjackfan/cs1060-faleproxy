@@ -1,8 +1,8 @@
 name: Faleproxy Preview Deploy
 
 on:
-  pull_request:
-    branches: [ main, master ]
+  push:
+    branches-ignore: [ main, master ]
 
 jobs:
   test:
@@ -35,7 +35,7 @@ jobs:
         
   deploy-preview:
     needs: test
-    if: success()
+    if: success() && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master'
     runs-on: ubuntu-latest
     
     steps:
