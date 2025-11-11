@@ -30,12 +30,12 @@ jobs:
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-report
+        name: coverage-report-node-${{ matrix.node-version }}
         path: coverage/
         
   deploy-preview:
     needs: test
-    if: success() && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master'
+    if: always()
     runs-on: ubuntu-latest
     
     steps:
