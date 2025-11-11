@@ -35,7 +35,7 @@ jobs:
         
   deploy-preview:
     needs: test
-    if: success() && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master'
+    if: always()
     runs-on: ubuntu-latest
     
     steps:
